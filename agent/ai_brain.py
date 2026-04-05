@@ -128,6 +128,10 @@ class ContextBuilder:
         sections = []
 
         # 0. Volatility Triggers
+        signals = shared_state.get_section("signals")
+        if not isinstance(signals, dict):
+            signals = {}
+            
         vol = signals.get("volatility", {})
         if vol.get("active"):
             sections.append(f"## Market Volatility ACTIVE\n  Triggers: {', '.join(vol.get('triggers', []))}")

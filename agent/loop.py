@@ -173,15 +173,16 @@ class TradingLoop:
         if self._cycle % 60 == 0:
             await self.rebalancer.check_balances()
 
-        in_window, window_label = self.signals.is_dip_window()
+        # Check market volatility instead of time windows
+        is_volatile, vol_triggers = self.signals.check_market_volatility()
         summary = self.positions.get_account_summary()
 
-        self._print_status_bar(in_window, window_label, summary)
+        self._print_status_bar(is_volatile, vol_triggers, summary)
 
         # Respect minimum gap between full AI analyses
         time_since_last = time.time() - self._last_decision_time
-        if time_since_last < self._min_decision_gap and not in_window:
-            logger.debug(f"Not in window & recent analysis {time_since_last:.0f}s ago — skipping")
+        if time_since_last < self._min_decision_gap and not is_volatile:
+            logger.debug(f"Not volatile & recent analysis {time_since_last:.0f}s ago — skipping")
             return
 
         # If we have 3 open positions already, skip analysis
@@ -194,15 +195,14 @@ class TradingLoop:
         dip_triggered = canary["dip_triggered"]
 
         # Update shared API state every cycle
-        self._push_state(summary, in_window, window_label, canary)
+        self._push_state(summary, is_volatile, vol_triggers, canary)
 
-        # Prism strong signal overrides time-window gate
+        # Prism strong signal overrides everything
         prism_signals = prism_store.get_signals() if prism_store.is_fresh else []
         strong_prism = [s for s in prism_signals if s["signal_score"] >= 3]
         prism_trigger = bool(strong_prism)
 
-        if not dip_triggered and not in_window and not prism_trigger:
-            next_window = self.signals.minutes_to_next_window()
+        if not dip_triggered and not is_volatile and not prism_trigger:
             btc_chg = canary['btc']['change_1h_pct']
             eth_chg = canary['eth']['change_1h_pct']
             btc_str = f"{btc_chg:.2f}%" if btc_chg is not None else "N/A"
@@ -210,13 +210,13 @@ class TradingLoop:
             prism_str = f"Prism={len(prism_signals)} signals" if prism_signals else "Prism=no signals"
             logger.info(
                 f"Canary: BTC={btc_str} | ETH={eth_str} | "
-                f"Next window in {next_window}m | {prism_str}"
+                f"Volatile: False | {prism_str}"
             )
             return
 
         # Log what triggered analysis
         triggers = []
-        if in_window:       triggers.append(f"time_window({window_label})")
+        if is_volatile:     triggers.append(f"volatility({','.join(vol_triggers)})")
         if dip_triggered:   triggers.append("canary_dip")
         if prism_trigger:   triggers.append(f"prism_strong({len(strong_prism)} signals)")
         logger.info(f"Analysis triggered by: {', '.join(triggers)}")
