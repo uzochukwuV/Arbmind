@@ -1,0 +1,43 @@
+modules = ["python-3.12"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 main.py"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[deployment]
+deploymentTarget = "vm"
+run = ["python3", "main.py"]
+
+[userenv]
+
+[userenv.shared]
+CMC_API_KEY = "1cf262c5-ceb1-4f78-820a-8dc03aaf7331"
+PRISM_API_KEY = "prism_sk_US8dsdhgHcoWzO7APOz_Vjxd4DyCoTTdEeUd4sw5_Wo"
+
+[[ports]]
+localPort = 8000
+externalPort = 80
