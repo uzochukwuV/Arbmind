@@ -22,10 +22,10 @@ OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 
 # Models tried in priority order — all free, no tool-use required
 FREE_MODELS = [
-    "deepseek/deepseek-r1:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "google/gemini-2.0-flash-lite-preview-02-05:free",
-    "google/gemma-2-9b-it:free"
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "google/gemini-2.5-flash:free",
+    "qwen/qwen-2.5-7b-instruct:free",
+    "mistralai/mistral-7b-instruct:free"
 ]
 
 
