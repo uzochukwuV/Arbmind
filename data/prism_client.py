@@ -176,21 +176,24 @@ class PrismClient:
         return self._get(f"/dex/{symbol}/funding/all", ttl=300)
 
     def get_venue_prices(self, symbol: str) -> dict:
-        """Get prices across multiple venues (CEX & DEX)."""
-        data = self._get(f"/resolve/{symbol}", ttl=10)
-        if not data:
+        """Get spot/perp prices across DEXes and CEXes."""
+        data = self._get(f"/dex/{symbol}/prices/venues", ttl=60)
+        if not data or not isinstance(data, dict):
             return {}
             
         venues = data.get("venues", [])
+        if not isinstance(venues, list):
+            return {}
+            
         prices = {}
         for venue in venues:
-            v_type = venue.get("type")
-            if v_type in ["cex_spot", "dex_perp", "dex_spot"]:
-                name = venue.get("name", "").lower()
+            if not isinstance(venue, dict):
+                continue
+            v_type = venue.get("type", "")
+            if v_type in ["cex_spot", "dex_spot"]:
+                name = venue.get("venue")
                 if name:
-                    # Prism API returns top level price_usd for the consensus price
-                    # Using consensus as proxy if venue specific isn't available
-                    prices[name] = venue.get("price_usd") or data.get("price_usd")
+                    prices[name] = venue.get("price_usd")
         return prices
 
     def get_dex_search(self, symbol: str, chain: str = "base") -> list[dict]:
