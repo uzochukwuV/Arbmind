@@ -229,7 +229,7 @@ class PrismClient:
     def get_funding_rates_all(self, symbol: str) -> dict:
         """Get funding rates across all DEX perps."""
         data = self._get(f"/dex/{symbol}/funding/all", ttl=300)
-        if not data:
+        if not data or not isinstance(data, dict):
             return {}
             
         return {

@@ -27,6 +27,7 @@ from agent.arb_executor import ArbExecutor
 from agent.rebalancer import CapitalRebalancer
 from agent.funding_harvester import FundingRateHarvester
 from data.dex_price_client import DexPriceClient
+from data.prism_client import PrismClient
 from api import shared_state
 from utils.logger import get_logger
 
@@ -50,7 +51,8 @@ class TradingLoop:
         self.arb_executor = ArbExecutor(self.cli, self.positions)
         self.arb_loop = ArbLoop(self.arb_detector, self.arb_executor, self.positions)
         self.rebalancer = CapitalRebalancer(self.positions)
-        self.funding_harvester = FundingRateHarvester(self.rest, self.positions)
+        self.prism_client = PrismClient()
+        self.funding_harvester = FundingRateHarvester(self.prism_client, self.positions)
 
         self._cycle = 0
         self._last_decision_time = 0

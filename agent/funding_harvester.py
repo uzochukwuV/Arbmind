@@ -37,7 +37,11 @@ class FundingRateHarvester:
                     continue
                     
                 best_long = data.get("best_for_long", {})
+                if not isinstance(best_long, dict):
+                    best_long = {}
                 best_short = data.get("best_for_short", {})
+                if not isinstance(best_short, dict):
+                    best_short = {}
                 
                 # Check for extreme negative funding (pays longs)
                 if best_long and float(best_long.get("apr", 0)) > self.min_apr_threshold * 100:
