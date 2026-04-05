@@ -107,7 +107,7 @@ class TradingLoop:
             logger.debug(f"Cycle {self._cycle} took {elapsed:.1f}s. Sleeping {sleep_time:.0f}s.")
             await asyncio.sleep(sleep_time)
 
-    def _push_state(self, summary: dict, in_window: bool, window_label: str, canary: dict = None):
+    def _push_state(self, summary: dict, is_volatile: bool, vol_triggers: list, canary: dict = None):
         """Push live trading state to the shared API state store."""
         import time as _time
         shared_state.update("agent", {
@@ -137,9 +137,8 @@ class TradingLoop:
 
         # Signal state
         sig_update = {
-            "in_window":              in_window,
-            "window_label":           window_label,
-            "minutes_to_next_window": self.signals.minutes_to_next_window(),
+            "is_volatile":  is_volatile,
+            "vol_triggers": vol_triggers,
         }
         if canary:
             sig_update["canary"] = canary
@@ -349,9 +348,9 @@ class TradingLoop:
 
     # ── Display helpers ──────────────────────────────────────────
 
-    def _print_status_bar(self, in_window: bool, window_label: str, summary: dict):
+    def _print_status_bar(self, is_volatile: bool, vol_triggers: list, summary: dict):
         mode_tag = "[green]PAPER[/green]" if config.paper_mode else "[red]LIVE[/red]"
-        window_tag = f"[yellow]WINDOW: {window_label}[/yellow]" if in_window else "[dim]no window[/dim]"
+        window_tag = f"[yellow]VOLATILE: {','.join(vol_triggers)}[/yellow]" if is_volatile else "[dim]quiet[/dim]"
         pnl_color = "green" if summary["today_pnl"] >= 0 else "red"
         loss_limit_tag = (
             "[bold red] ⛔ DAILY LOSS LIMIT[/bold red]"

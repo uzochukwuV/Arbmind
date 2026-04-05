@@ -127,10 +127,15 @@ class ContextBuilder:
     def build(self) -> str:
         sections = []
 
-        # 1. Time window & canary
+        # 0. Volatility Triggers
+        vol = signals.get("volatility", {})
+        if vol.get("active"):
+            sections.append(f"## Market Volatility ACTIVE\n  Triggers: {', '.join(vol.get('triggers', []))}")
+        else:
+            sections.append("## Market Volatility\n  Quiet (No volume spikes, oversold conditions, or deep dips detected)")
+
+        # 1. Canary Signals
         try:
-            in_window, window_label = self.signals.is_dip_window()
-            next_window = self.signals.minutes_to_next_window()
             canary = self.signals.get_canary_signal()
             btc = canary['btc']
             eth = canary['eth']
@@ -138,8 +143,7 @@ class ContextBuilder:
             eth_rsi = eth.get('rsi', {})
             btc_vol = btc.get('volume', {})
             eth_vol = eth.get('volume', {})
-            sections.append(f"""## Time & Canary Signals
-- In trading window: {in_window} ({window_label if in_window else f'next in {next_window}m'})
+            sections.append(f"""## Canary Signals
 - BTC 1h change: {self._fmt(btc['change_1h_pct'])}% (threshold: {btc['threshold']}%)
 - BTC 15m change: {self._fmt(btc['change_15m_pct'])}%
 - BTC price: ${self._fmt(btc['price'], 0)}
@@ -153,7 +157,7 @@ class ContextBuilder:
 - Dip triggered: {canary['dip_triggered']}
 - Strong signal (dip+RSI+vol): {canary.get('strong_signal', False)}""")
         except Exception as e:
-            sections.append(f"## Time & Canary Signals\nError: {e}")
+            sections.append(f"## Canary Signals\nError: {e}")
 
         # 2. Regime
         try:

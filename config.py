@@ -85,11 +85,6 @@ class Config:
         "flow", "kava", "gmx",
     ])
 
-    # DIP windows in UTC+1 (hour_start, min_start, hour_end, min_end)
-    dip_windows_utc1: list = field(default_factory=lambda: [
-        (5, 30, 6, 30),   # 6AM UTC+1 window
-        (15, 0, 16, 30),  # 4PM UTC+1 window
-    ])
 
 
 # Singleton

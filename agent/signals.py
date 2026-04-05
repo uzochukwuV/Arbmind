@@ -36,30 +36,27 @@ class SignalEngine:
         self._cache_ts: dict[str, float] = {}
         self._cache_ttl = 60  # seconds
 
-    # ── Time window gate ────────────────────────────────────────
+    # ── Volatility Triggers ────────────────────────────────────────
 
-    def is_dip_window(self) -> tuple[bool, str]:
-        """Returns (is_in_window, window_label). Uses WAT (UTC+1)."""
-        now = datetime.datetime.now(tz=WAT)
-        for (sh, sm, eh, em) in config.dip_windows_utc1:
-            start = now.replace(hour=sh, minute=sm, second=0, microsecond=0)
-            end = now.replace(hour=eh, minute=em, second=0, microsecond=0)
-            if start <= now <= end:
-                label = f"{sh:02d}:{sm:02d}–{eh:02d}:{em:02d} WAT"
-                return True, label
-        return False, ""
-
-    def minutes_to_next_window(self) -> int:
-        """How many minutes until the next dip window opens."""
-        now = datetime.datetime.now(tz=WAT)
-        mins = []
-        for (sh, sm, eh, em) in config.dip_windows_utc1:
-            start = now.replace(hour=sh, minute=sm, second=0, microsecond=0)
-            if start < now:
-                start += datetime.timedelta(days=1)
-            delta = (start - now).total_seconds() / 60
-            mins.append(int(delta))
-        return min(mins)
+    def check_market_volatility(self) -> tuple[bool, list[str]]:
+        """
+        Scans all tradeable alts. Returns True if ANY altcoin exhibits 
+        high volatility (volume spike, oversold RSI, or deep dip).
+        """
+        triggers = []
+        is_volatile = False
+        
+        candidates = self.get_high_correlation_alts(min_corr=0.0) # Check all regardless of correlation
+        for cand in candidates:
+            if cand.get("signal_quality", 0) >= 1:
+                is_volatile = True
+                reasons = []
+                if cand.get("dipping"): reasons.append("dip")
+                if cand.get("rsi_oversold"): reasons.append("oversold_rsi")
+                if cand.get("volume_spike"): reasons.append("vol_spike")
+                triggers.append(f"{cand['symbol']} ({'+'.join(reasons)})")
+                
+        return is_volatile, triggers
 
     # ── OHLC helpers ────────────────────────────────────────────
 
@@ -393,27 +390,25 @@ class SignalEngine:
 
     def get_full_signal_snapshot(self) -> dict:
         """One call returns everything the AI needs to make a decision."""
-        in_window, window_label = self.is_dip_window()
+        is_volatile, vol_triggers = self.check_market_volatility()
         canary = self.get_canary_signal()
         regime = self.classify_regime()
 
         snapshot = {
             "timestamp": datetime.datetime.now(tz=WAT).isoformat(),
-            "time_window": {
-                "active": in_window,
-                "label": window_label,
-                "minutes_to_next": None if in_window else self.minutes_to_next_window(),
+            "volatility": {
+                "active": is_volatile,
+                "triggers": vol_triggers,
             },
             "regime": regime,
             "canary": canary,
             "pre_conditions_met": (
-                in_window and
-                regime.get("trade_enabled", False) and
-                canary.get("dip_triggered", False)
+                (is_volatile or canary.get("dip_triggered", False)) and
+                regime.get("trade_enabled", False)
             ),
         }
 
-        if in_window or canary.get("dip_triggered"):
+        if is_volatile or canary.get("dip_triggered"):
             snapshot["correlation_candidates"] = self.get_high_correlation_alts()
         else:
             snapshot["correlation_candidates"] = []
