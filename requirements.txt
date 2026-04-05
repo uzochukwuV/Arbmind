@@ -8,3 +8,8 @@ python-dotenv>=1.0.0           # Environment config
 rich>=13.0.0                   # Beautiful terminal output
 aiohttp>=3.9.0                 # Async HTTP for CMC
 pytz>=2024.1                   # Timezone handling
+
+# Web Dashboard
+fastapi>=0.100.0               # Dashboard API endpoints
+uvicorn>=0.23.0                # ASGI server for FastAPI
+web3>=6.0.0                    # ERC-8004 Hackathon & Base DEX swaps
